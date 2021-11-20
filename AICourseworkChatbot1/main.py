@@ -4,7 +4,7 @@
 # imports
 import datetime
 import time
-
+import nltk
 import aiml
 import wikipedia
 import pyjokes
@@ -13,6 +13,7 @@ import speech_recognition as sr
 import json
 import sklearn
 from sklearn.feature_extraction.text import TfidfVectorizer
+import fandom
 
 
 # classes
@@ -33,6 +34,7 @@ engine.setProperty("voice", voices[1].id)
 
 def speak(audio):
     engine.say(audio)
+    print(audio)
     engine.runAndWait()
 
 
@@ -52,8 +54,8 @@ def greetUser():
 
 def takeCommand():
     r = sr.Recognizer()
-    # print(sr.Microphone.list_microphone_names())
-    mic = sr.Microphone(device_index=3)
+    print(sr.Microphone.list_microphone_names())
+    mic = sr.Microphone(device_index=3) # 3 for my home pc  # 2 for my laptop
     with mic as source:
         print("listening!")
         r.pause_threshold = 1
@@ -79,19 +81,42 @@ def main():
 
     apologyText = "Try again, I'll do better next time! "
 
-    kern.bootstrap(learnFiles="spnChatbot1-aiml.xml")
-
-    # speak("welcome")
-    # time.sleep(5)
+    #kern.bootstrap(learnFiles="spnChatbot1-aiml.xml")
     greetUser()
-    speak("Welcome to the spn chat bot! Ask away!")
-
+    speak("Welcome to the spn chat bot!")
     takingQueries = True
     while takingQueries:
-        query: str = takeCommand().lower()
-        #responseAgent = 'aiml'
-        answer = kern.respond(query)
+        print("Select which type of input you would like to use: [1] typing [2] voice \n")
+        inputType: str = input("> ")
+        if inputType == "1":
+            speak("What would you like to ask me? ")
+            query: str = input("> ")
 
+        elif inputType == 2:
+            speak("What would you like to ask me? ")
+            query: str = takeCommand().lower()
+            # responseAgent = 'aiml'
+        answer = kern.respond(query)
+        queryTokens = nltk.word_tokenize(query)
+
+        d0 = query
+        d1 = queryTokens[0][1]
+        d2 = 'r2j'
+
+        string = [d0, d1, d2]
+        tfidf = TfidfVectorizer()
+        result = tfidf.fit_transform(string)
+        print('\nidf values:')
+        for ele1, ele2 in zip(tfidf.get_feature_names(), tfidf.idf_):
+            print(ele1, ':', ele2)
+
+        print('\nWord indexes:')
+        print(tfidf.vocabulary_)
+        print('\ntf-idf value:')
+        print(result)
+        print('\ntf-idf values in matrix form:')
+        print(result.toarray())
+        '''
         if answer[0] == '#':
             params = answer[1:].split('$')
             command = int(params[0])
@@ -103,10 +128,7 @@ def main():
                     # wikipedia facts here
                     wikiResults = wikipedia.summary(params[1], sentences=2)
                     time.sleep(5)
-
-                    print(wikiResults)
                     speak(wikiResults)
-                    # print(wikiResults)
                 except:
                     speak("Sorry, I don't know that one! There's a lot of supernatural to get through, you understand?")
                     speak(apologyText)
@@ -114,22 +136,7 @@ def main():
                 # tells a joke
                 speak(pyjokes.get_joke())
             elif command == 3:
-                d0 = 'Geeks for geeks'
-                d1 = 'Geeks'
-                d2 = 'r2j'
-
-                string = [d0, d1, d2]
-                tfidf = TfidfVectorizer()
-                result = tfidf.fit_transform(string)
-                print('\nidf values:')
-                for ele1, ele2 in zip(tfidf.get_feature_names(), tfidf.idf_):
-                    print(ele1, ':', ele2)
-                print('\nWord indexes:')
-                print(tfidf.vocabulary_)
-                print('\ntf-idf value:')
-                print(result)
-                print('\ntf-idf values in matrix form:')
-                print(result.toarray())
+                # finish
 
             elif command == 98:
                 speak("closing program down now")
@@ -139,9 +146,7 @@ def main():
                 speak(apologyText)
 
         else:
-            speak(answer)
+            speak(answer) '''
 
 
 main()
-
-# blue screen of death at some point
