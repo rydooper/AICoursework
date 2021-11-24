@@ -1,0 +1,129 @@
+<aiml version="1.0.1" encoding="UTF-8">
+
+<!-- Greetings etc -->
+    <category> <pattern> HELLO </pattern>
+        <template>
+            <random>
+                <li>Hello! How are you today? </li>
+                <li>Hey there! </li>
+                <li>Howdy! </li>
+                <li>Hi! </li>
+            </random>
+        </template>
+    </category>
+
+    <category> <pattern> HELLO * </pattern>
+        <template>
+            <srai> HELLO </srai>
+        </template>
+    </category>
+
+    <category> <pattern> MY NAME IS * </pattern>
+        <template>
+            Hello <set name="nameUser"> <star/> </set>
+        </template>
+    </category>
+
+    <category> <pattern> HOW ARE YOU * </pattern>
+        <template>
+            I'm functioning perfectly, thanks for checking in!
+        </template>
+    </category>
+
+    <category> <pattern> I'M FINE </pattern>
+        <template>
+            I'm glad! What would you like to talk about today?
+        </template>
+    </category>
+
+    <category> <pattern> GOODBYE </pattern>
+        <template>
+            Talk to you some other time, take care!
+        </template>
+    </category>
+
+    <category> <pattern> BYE </pattern>
+        <template>
+            <srai> GOOD BYE <star/> </srai>
+        </template>
+    </category>
+
+    <category> <pattern> EXIT </pattern>
+        <template>
+            That's rather rude, isn't it? Bye then <get name="nameUser"/>
+            <srai> STOP LISTENING * </srai>
+        </template>
+    </category>
+
+    <category> <pattern> CHEERS </pattern>
+        <template>
+            No worries!
+        </template>
+    </category>
+
+    <category> <pattern> GOOD NIGHT </pattern>
+        <template> Good night <get name="nameUser"/>> </template>
+    </category>
+
+    <category> <pattern> GOODNIGHT </pattern>
+        <template> <srai> GOOD NIGHT </srai></template>
+    </category>
+
+
+<!-- WHAT IS QUESTIONS -->
+
+    <category> <pattern> WHAT IS A * </pattern>
+        <template>
+            #1$ <star index="1"/>
+        </template>
+    </category>
+
+    <category> <pattern> WHAT IS AN * </pattern>
+        <template>
+            <srai> WHAT IS A <star/> </srai>
+        </template>
+    </category>
+
+    <category> <pattern> WHAT IS * </pattern>
+        <template>
+            <srai> WHAT IS A <star/> </srai>
+        </template>
+    </category>
+
+    <category> <pattern> DEFINE * </pattern>
+        <template>
+            <srai> WHAT IS A <star/> </srai>
+        </template>
+    </category>
+
+    <category> <pattern> WHO IS * </pattern>
+        <template>
+            <srai> WHAT IS A <star/> </srai>
+        </template>
+    </category>
+
+<!-- default reaction to user input -->
+    <category> <pattern> * </pattern>
+        <template>
+            #99$ <star index="99"/>
+        </template>
+    </category>
+
+    <category> <pattern> TELL A JOKE </pattern>
+        <template>
+            #2$ <star index="2"/>
+        </template>
+    </category>
+
+    <category><pattern> TEST </pattern>
+        <template>
+            #3$ <star index="3"/>
+        </template>
+    </category>
+
+    <category> <pattern> STOP LISTENING * </pattern>
+        <template>
+            #98$ <star index="98"/>
+        </template>
+    </category>
+</aiml>
