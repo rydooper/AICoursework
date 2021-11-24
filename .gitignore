@@ -1,7 +1,2 @@
-*.json
-AICourseworkChatbot1/venv/Lib/site-packages/PyAudio-0.2.11.dist-info/INSTALLER
-AICourseworkChatbot1/venv/Lib/site-packages/PyAudio-0.2.11.dist-info/METADATA
-AICourseworkChatbot1/venv/Lib/site-packages/PyAudio-0.2.11.dist-info/RECORD
-AICourseworkChatbot1/venv/Lib/site-packages/PyAudio-0.2.11.dist-info/REQUESTED
-*.txt
-AICourseworkChatbot1/venv/Lib/site-packages/PyAudio-0.2.11.dist-info/WHEEL
+AICourseworkChatbot1/.idea/*
+AICourseworkChatbot1/venv/*

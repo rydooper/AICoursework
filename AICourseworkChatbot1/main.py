@@ -3,15 +3,17 @@
 
 # imports
 import datetime
-import time
 import nltk
+try:
+    nltk.download('punkt')
+    nltk.download('averaged_perceptron_tagger')
+except:
+    print("Packages installed already!")
 import aiml
 import wikipedia
 import pyjokes
 import pyttsx3
 import speech_recognition as sr
-import json
-import sklearn
 from sklearn.feature_extraction.text import TfidfVectorizer
 import fandom
 
@@ -72,6 +74,18 @@ def takeCommand():
         return "none"
     return query
 
+def checkKnowledge(query):
+    print(query)
+
+    queryTokens = nltk.word_tokenize(query)
+    print(queryTokens)
+    tagged: list = nltk.pos_tag(queryTokens)
+    print(tagged)
+    x: int = 0
+    print(tagged[0])
+    for x in range(len(queryTokens)):
+        if tagged[x][1] == 'NN':
+            print("Noun found ", queryTokens[x])
 
 # main
 
@@ -97,9 +111,10 @@ def main():
             query: str = takeCommand().lower()
             # responseAgent = 'aiml'
         answer = kern.respond(query)
-        queryTokens = nltk.word_tokenize(query)
 
-        d0 = query
+        checkKnowledge(query)
+
+        '''d0 = query
         d1 = queryTokens[0][1]
         d2 = 'r2j'
 
@@ -116,7 +131,7 @@ def main():
         print(result)
         print('\ntf-idf values in matrix form:')
         print(result.toarray())
-        '''
+
         if answer[0] == '#':
             params = answer[1:].split('$')
             command = int(params[0])
