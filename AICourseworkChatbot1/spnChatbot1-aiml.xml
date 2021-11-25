@@ -24,9 +24,15 @@
         </template>
     </category>
 
-    <category> <pattern> HOW ARE YOU * </pattern>
+    <category> <pattern> HOW ARE YOU </pattern>
         <template>
             I'm functioning perfectly, thanks for checking in!
+        </template>
+    </category>
+
+    <category> <pattern> HOW ARE YOU * </pattern>
+        <template>
+            <srai> HOW ARE YOU </srai>
         </template>
     </category>
 
@@ -51,7 +57,7 @@
     <category> <pattern> EXIT </pattern>
         <template>
             That's rather rude, isn't it? Bye then <get name="nameUser"/>
-            <srai> STOP LISTENING * </srai>
+            <srai> GOOD BYE <star/> </srai>
         </template>
     </category>
 
@@ -97,6 +103,12 @@
     </category>
 
     <category> <pattern> WHO IS * </pattern>
+        <template>
+            <srai> WHAT IS A <star/> </srai>
+        </template>
+    </category>
+
+    <category> <pattern> WHY IS * </pattern>
         <template>
             <srai> WHAT IS A <star/> </srai>
         </template>
