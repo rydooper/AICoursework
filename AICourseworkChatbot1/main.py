@@ -40,12 +40,15 @@ spnChatbot = chatbotAI("Dave")
 engine = pyttsx3.init("sapi5")
 voices = engine.getProperty("voices")
 engine.setProperty("voice", voices[1].id)
+fandom.set_wiki("supernatural")
 
 # setup knowledge dataset
 read_expr = Expression.fromstring
 kb: list = []
-data = pandas.read_csv('knowledge.csv', header=None)
-[kb.append(read_expr(row)) for row in data[0]]
+
+
+# data = pandas.read_csv('knowledge.csv', header=None)
+# [kb.append(read_expr(row)) for row in data[0]]
 
 
 def speak(audio):
@@ -166,6 +169,16 @@ def main():
                     speak(pyjokes.get_joke())
                 elif command == 3:
                     # finish  # what was my command here again?
+                    # fandom api
+                    try:
+                        print(query)
+                        query = query.strip("check wiki ")
+                        print(query)
+                        checkPage: list = fandom.search(query, results=1)
+                        page = fandom.page(pageid=checkPage[0][1])
+                        speak(page.summary)
+                    except (fandom.error.PageError):
+                        print("Could not find a matching page!")
                     print("nice")
 
                     # Here are the processing of the new logical component:
