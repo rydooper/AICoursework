@@ -80,7 +80,7 @@
 
     <category> <pattern> WHAT IS A * </pattern>
         <template>
-            #1$ <star index="1"/>
+            <srai> CHECK WIKI * <star/> </srai>
         </template>
     </category>
 

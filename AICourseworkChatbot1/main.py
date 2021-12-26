@@ -4,17 +4,18 @@
 # imports
 import datetime
 import time
+from math import log
+
 import nltk
 from nltk.sem import Expression
 from nltk.inference import ResolutionProver
 
-try:
-    if nltk.download('punkt'):
-        print("punkt installed")
-    if nltk.download('averaged_perception_tagger'):
-        print("averaged_perception_tagger installed")
-except:
-    print("Error in package download!")
+if nltk.download('punkt'):
+    print("nltk - punkt installed")
+if nltk.download('averaged_perception_tagger'):
+    print("nltk - averaged_perception_tagger installed")
+if nltk.download('brown'):
+    print("nltk - brown installed")
 
 import aiml
 import wikipedia
@@ -23,8 +24,8 @@ import pyttsx3
 import speech_recognition as sr
 from sklearn.feature_extraction.text import TfidfVectorizer
 import fandom
-
-import pandas
+from simpful import *
+import pandas as pd
 
 
 # classes
@@ -45,10 +46,8 @@ fandom.set_wiki("supernatural")
 # setup knowledge dataset
 read_expr = Expression.fromstring
 kb: list = []
-
-
-# data = pandas.read_csv('knowledge.csv', header=None)
-# [kb.append(read_expr(row)) for row in data[0]]
+data = pd.read_csv('kb.csv', header=None)
+[kb.append(read_expr(row)) for row in data[0]]
 
 
 def speak(audio):
@@ -60,14 +59,14 @@ def speak(audio):
 def greetUser():
     hour = int(datetime.datetime.now().hour)
     if 0 <= hour < 12:
-        speak("good morning! ")
+        speak("Good morning! ")
     elif 12 <= hour < 18:
-        speak("good afternoon!")
+        speak("Good afternoon!")
     else:
-        speak("good evening!")
+        speak("Good evening!")
 
-    AIName = "dave version 1 point 0 "
-    speak("i am the assistant")
+    AIName = "Dave version 1 point 0 "
+    speak("I am the assistant")
     speak(AIName)
 
 
@@ -87,33 +86,53 @@ def takeCommand():
         print(query, "\n")
     except Exception as e:
         print(e)
-        print("unable to recognise, sorry")
+        print("Unable to recognise, sorry!")
         return "none"
     return query
 
 
-def checkKnowledge(query):
+def checkSimilarWords(query):
     queryTokens = nltk.word_tokenize(query)
     tagged: list = nltk.pos_tag(queryTokens)
-    print(tagged)
-    nouns: list = []
-    for x in range(len(queryTokens)):
-        if tagged[x][1] == 'NN':
-            nouns.append(queryTokens[x])
-            print("Noun found:", queryTokens[x])
-    return nouns
+
+    '''text = nltk.Text(word.lower() for word in nltk.corpus.brown.words())
+    for x in range(len(tagged)):
+        print(text.similar(tagged[x]))'''
+    return
+
+def calculateTFIDFofKnowledge(itemDict, item, dataLine):
+    dataCounter: int = 0
+    for y in dataLine.split(","):
+        if itemDict[item][1] in y:
+            dataCounter += 1
+            print("dataLine: ", dataLine, "itemDict[item][1]: ", itemDict[item][1])
+    if dataCounter >= 1:
+        knowledgeTFIDF = log(dataCounter / len(dataLine))
+        return knowledgeTFIDF
+    else:
+        return 0
 
 
-def calculateTFIDF(query):
+def calculateTFIDFofInput(query):
     # calculate number of times a word shows up in userinput
     # calculate number of times the same word shows up in the csv file
     # num1 * num2 = tfIDF value
-
     queryTokens = nltk.word_tokenize(query)
-    # for item in range(len(queryTokens)):
-
-    return 0
-
+    itemDict: dict = {}
+    knowledgeIDF: dict = {}
+    tfidf: dict = {}
+    for item in queryTokens:
+        itemCounter: int = 0
+        for countItem in queryTokens:
+            if countItem == item:
+                itemCounter += 1
+        itemDict[item] = (itemCounter, item)
+        queryTF = itemCounter / len(query)
+        dataset = pd.read_csv('knowledge.csv')
+        for dataLine in dataset:
+            knowledgeIDF[item] = (calculateTFIDFofKnowledge(itemDict, item, dataLine))
+        tfidf[item] = (queryTF * knowledgeIDF[item])
+    return tfidf
 
 # main
 
@@ -133,7 +152,7 @@ def main():
         while takingQueries:
             if inputType == "1":
                 try:
-                    query: str = input("> ")
+                    query: str = input("> ").lower()
                 except (KeyboardInterrupt, EOFError) as e:
                     print("Keyboard input error,", e, " shutting down!")
                     break
@@ -144,26 +163,15 @@ def main():
                 break
             responseAgent = 'aiml'
             answer: str = kern.respond(query)
-            nouns: list = checkKnowledge(query)
-            if not nouns:
-                print("no nouns received!")
+            checkSimilarWords(query)
+            tfidf = calculateTFIDFofInput(query)
+            print(tfidf)
             if answer[0] == '#':
                 params: list[str] = answer[1:].split('$')
                 command: int = int(params[0])
                 if command == 0:
                     speak(params[1])
                     break
-                elif command == 1:
-                    try:
-                        # wikipedia facts here
-                        wikiResults: str = wikipedia.summary(params[1], sentences=2)
-                        time.sleep(5)
-                        speak(wikiResults)
-                    except:
-                        speak(
-                            "Sorry, I don't know that one! There's a lot of supernatural to get through, "
-                            "you understand?")
-                        speak(apologyText)
                 elif command == 2:
                     # tells a joke
                     speak(pyjokes.get_joke())
@@ -171,13 +179,14 @@ def main():
                     # finish  # what was my command here again?
                     # fandom api
                     try:
-                        print(query)
                         query = query.strip("check wiki ")
                         print(query)
                         checkPage: list = fandom.search(query, results=1)
-                        page = fandom.page(pageid=checkPage[0][1])
-                        speak(page.summary)
-                    except (fandom.error.PageError):
+                        page2 = fandom.page(pageid=checkPage[0][1])
+                        speak(page2.title)
+                        speak(page2.sections)
+                        speak(page2.summary)
+                    except fandom.error.PageError:
                         print("Could not find a matching page!")
                     print("nice")
 

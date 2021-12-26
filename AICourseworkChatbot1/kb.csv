@@ -1,0 +1,7 @@
+Father(x) -> Son(x)
+Father(John)
+-Son(Dean)
+
+Father(x) -> Son(x)
+Father(John)
+-Son(Sam)
