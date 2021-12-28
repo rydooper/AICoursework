@@ -4,6 +4,7 @@
 # imports
 import datetime
 import time
+import re
 from math import log
 
 import nltk
@@ -22,7 +23,6 @@ import wikipedia
 import pyjokes
 import pyttsx3
 import speech_recognition as sr
-from sklearn.feature_extraction.text import TfidfVectorizer
 import fandom
 from simpful import *
 import pandas as pd
@@ -48,6 +48,20 @@ read_expr = Expression.fromstring
 kb: list = []
 data = pd.read_csv('kb.csv', header=None)
 [kb.append(read_expr(row)) for row in data[0]]
+'''
+from nltk.chat.util import Chat, reflections
+pairs = (
+(r'I need (.*)',
+( "Why do you need %1?",
+"Would it really help you to get %1?",
+"Are you sure you need %1?")),
+(r'Why don\'t you (.*)',
+( "Do you really think I don't %1?",
+"Perhaps eventually I will %1.",
+"Do you really want me to %1?")),
+...
+eliza_chatbot = Chat(pairs, reflections)
+eliza_chatbot.converse() '''
 
 
 def speak(audio):
@@ -100,15 +114,17 @@ def checkSimilarWords(query):
         print(text.similar(tagged[x]))'''
     return
 
-def calculateTFIDFofKnowledge(itemDict, item, dataLine):
+
+def calculateIDF(itemDict, item, dataLine):
+    # calculate number of times the same word shows up in the csv file
     dataCounter: int = 0
     for y in dataLine.split(","):
         if itemDict[item][1] in y:
             dataCounter += 1
             print("dataLine: ", dataLine, "itemDict[item][1]: ", itemDict[item][1])
     if dataCounter >= 1:
-        knowledgeTFIDF = log(dataCounter / len(dataLine))
-        return knowledgeTFIDF
+        knowledgeIDF = log(len(dataLine) / dataCounter)
+        return knowledgeIDF
     else:
         return 0
 
@@ -121,6 +137,7 @@ def calculateTFIDFofInput(query):
     itemDict: dict = {}
     knowledgeIDF: dict = {}
     tfidf: dict = {}
+    print(queryTokens)
     for item in queryTokens:
         itemCounter: int = 0
         for countItem in queryTokens:
@@ -130,9 +147,12 @@ def calculateTFIDFofInput(query):
         queryTF = itemCounter / len(query)
         dataset = pd.read_csv('knowledge.csv')
         for dataLine in dataset:
-            knowledgeIDF[item] = (calculateTFIDFofKnowledge(itemDict, item, dataLine))
+            knowledgeIDF[item] = (calculateIDF(itemDict, item, dataLine))
         tfidf[item] = (queryTF * knowledgeIDF[item])
+        if tfidf[item] > 0:
+            print("tfidf of item (", item, ") over 0: ", tfidf[item])
     return tfidf
+
 
 # main
 
@@ -165,7 +185,8 @@ def main():
             answer: str = kern.respond(query)
             checkSimilarWords(query)
             tfidf = calculateTFIDFofInput(query)
-            print(tfidf)
+            # if tfidf > 0:
+
             if answer[0] == '#':
                 params: list[str] = answer[1:].split('$')
                 command: int = int(params[0])
@@ -176,21 +197,38 @@ def main():
                     # tells a joke
                     speak(pyjokes.get_joke())
                 elif command == 3:
-                    # finish  # what was my command here again?
-                    # fandom api
+                    # fandom wikipedia api
                     try:
                         query = query.strip("check wiki ")
                         print(query)
                         checkPage: list = fandom.search(query, results=1)
-                        page2 = fandom.page(pageid=checkPage[0][1])
-                        speak(page2.title)
-                        speak(page2.sections)
-                        speak(page2.summary)
+                        currentPage = fandom.page(pageid=checkPage[0][1])
+                        plain_text = str(currentPage.plain_text)
+
+                        plain_text = plain_text.strip(currentPage.title)
+                        expr = re.compile(r'\n.\n(.*?)\n.\n(.*)\n')
+                        # strips title and quotes from plain text so only sentences remain
+                        plain_text = expr.sub('', plain_text)
+
+                        totalLine: str = ""
+                        sentenceCounter: int = 0
+                        for index, line in enumerate(plain_text):
+                            if sentenceCounter == 3:
+                                break
+                            totalLine += line
+                            if len(totalLine) > 4:
+                                if totalLine[-1] == ".":
+                                    print(totalLine)
+                                    if totalLine[0].isupper() and totalLine[-2] != "(b.":
+                                        sentenceCounter += 1
+                                        print(totalLine)
+                                        totalLine = ""
+                                    else:
+                                        continue
+
                     except fandom.error.PageError:
                         print("Could not find a matching page!")
-                    print("nice")
 
-                    # Here are the processing of the new logical component:
                 elif command == 31:  # if input pattern is "I know that * is *"
                     object, subject = params[1].split(' is ')
                     expr = read_expr(subject + '(' + object + ')')
