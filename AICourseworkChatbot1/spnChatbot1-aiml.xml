@@ -114,6 +114,18 @@
         </template>
     </category>
 
+    <category> <pattern> GET SUMMARY * </pattern>
+        <template>
+            <srai> WHAT IS A <star/> </srai>
+        </template>
+    </category>
+
+    <category> <pattern> JOKE * </pattern>
+        <template>
+            <srai> TELL A JOKE </srai>
+        </template>
+    </category>
+
 <!-- default reaction to user input -->
     <category> <pattern> * </pattern>
         <template>

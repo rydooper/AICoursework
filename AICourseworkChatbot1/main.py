@@ -2,14 +2,17 @@
 # chatbot 1 - supernatural
 
 # imports
+import csv
 import datetime
-import time
+import math
 import re
-from math import log
+from csv import reader
 
 import nltk
-from nltk.sem import Expression
+import numpy as np
 from nltk.inference import ResolutionProver
+from nltk.sem import Expression
+from sklearn.metrics.pairwise import cosine_similarity
 
 if nltk.download('punkt'):
     print("nltk - punkt installed")
@@ -19,12 +22,10 @@ if nltk.download('brown'):
     print("nltk - brown installed")
 
 import aiml
-import wikipedia
 import pyjokes
 import pyttsx3
 import speech_recognition as sr
 import fandom
-from simpful import *
 import pandas as pd
 
 
@@ -48,29 +49,24 @@ read_expr = Expression.fromstring
 kb: list = []
 data = pd.read_csv('kb.csv', header=None)
 [kb.append(read_expr(row)) for row in data[0]]
-'''
-from nltk.chat.util import Chat, reflections
-pairs = (
-(r'I need (.*)',
-( "Why do you need %1?",
-"Would it really help you to get %1?",
-"Are you sure you need %1?")),
-(r'Why don\'t you (.*)',
-( "Do you really think I don't %1?",
-"Perhaps eventually I will %1.",
-"Do you really want me to %1?")),
-...
-eliza_chatbot = Chat(pairs, reflections)
-eliza_chatbot.converse() '''
 
 
 def speak(audio):
+    """
+    Speaks the given input audio.
+    :param audio:
+    :return: nothing
+    """
     print(audio)
     engine.say(audio)
     engine.runAndWait()
 
 
 def greetUser():
+    """
+    Greets the user based on the hour and speaks the AI name
+    :return: nothing
+    """
     hour = int(datetime.datetime.now().hour)
     if 0 <= hour < 12:
         speak("Good morning! ")
@@ -85,6 +81,10 @@ def greetUser():
 
 
 def takeCommand():
+    """
+    Takes input from the users microphone and interprets using google translates API.
+    :return: query or "none"
+    """
     r = sr.Recognizer()
     print(sr.Microphone.list_microphone_names())
     mic = sr.Microphone(device_index=2)  # 3 for my home pc  # 2 for my laptop
@@ -105,57 +105,143 @@ def takeCommand():
     return query
 
 
-def checkSimilarWords(query):
-    queryTokens = nltk.word_tokenize(query)
-    tagged: list = nltk.pos_tag(queryTokens)
+def calculateCosineSimilarity(tfidfA, tfidfB):
+    """
+    Calculates the cosine similarity of query and knowledge bag.
+    Returns nothing.
 
-    '''text = nltk.Text(word.lower() for word in nltk.corpus.brown.words())
-    for x in range(len(tagged)):
-        print(text.similar(tagged[x]))'''
-    return
+    :param tfidfB:
+    :param tfidfA:
+    :return: nothing
+    """
+    tempA = list(tfidfA.values())
+    bagA = np.array(tempA)
 
+    tempB = list(tfidfB.values())
+    bagB = np.array(tempB)
 
-def calculateIDF(itemDict, item, dataLine):
-    # calculate number of times the same word shows up in the csv file
-    dataCounter: int = 0
-    for y in dataLine.split(","):
-        if itemDict[item][1] in y:
-            dataCounter += 1
-            print("dataLine: ", dataLine, "itemDict[item][1]: ", itemDict[item][1])
-    if dataCounter >= 1:
-        knowledgeIDF = log(len(dataLine) / dataCounter)
-        return knowledgeIDF
-    else:
-        return 0
+    # calculate cosine similarity of tfidfs
+    cosineSim = cosine_similarity(bagA.reshape(1, -1), bagB.reshape(1, -1))
+    cos = float(cosineSim)
+    return cos
 
 
-def calculateTFIDFofInput(query):
-    # calculate number of times a word shows up in userinput
-    # calculate number of times the same word shows up in the csv file
-    # num1 * num2 = tfIDF value
-    queryTokens = nltk.word_tokenize(query)
-    itemDict: dict = {}
-    knowledgeIDF: dict = {}
-    tfidf: dict = {}
-    print(queryTokens)
-    for item in queryTokens:
-        itemCounter: int = 0
-        for countItem in queryTokens:
-            if countItem == item:
-                itemCounter += 1
-        itemDict[item] = (itemCounter, item)
-        queryTF = itemCounter / len(query)
-        dataset = pd.read_csv('knowledge.csv')
-        for dataLine in dataset:
-            knowledgeIDF[item] = (calculateIDF(itemDict, item, dataLine))
-        tfidf[item] = (queryTF * knowledgeIDF[item])
-        if tfidf[item] > 0:
-            print("tfidf of item (", item, ") over 0: ", tfidf[item])
+def computeTF(wordDict, bagWords):
+    tfDict = {}
+    bagWordsCount = len(bagWords)
+    for word, count in wordDict.items():
+        tfDict[word] = count / float(bagWordsCount)
+    return tfDict
+
+
+def computeIDF(documents):
+    N = len(documents[0])
+    idfDict = dict.fromkeys(documents[0].keys(), 0)
+    for document in documents:
+        for word, val in document.items():
+            if val > 0:
+                idfDict[word] += 1
+    for word, val in idfDict.items():
+        idfDict[word] = math.log(N / float(val))
+    return idfDict
+
+
+def computeTFIDF(tfBag, idfs):
+    tfidf = {}
+    for word, val in tfBag.items():
+        tfidf[word] = val * idfs[word]
     return tfidf
 
 
-# main
+def tfidfAndCosineCheck(query):
+    """
+    Calculates tfidf and calls cosine similarity.
+    Adapted from this github: https://github.com/mayank408/TFIDF/blob/master/TFIDF.ipynb
 
+    :param query:
+    :return: nothing.
+    """
+    if "check wiki" in query:
+        query = query.strip("check wiki ")
+
+    with open("knowledge.csv", mode='r') as csv_file:
+        allData = reader(csv_file)
+        listData = []
+        for lines in allData:
+            listData += lines
+
+    listData.remove('question')
+    listData.remove(' answer')
+    knowledge = listData
+    for index, cells in enumerate(listData):
+        bagA = query.split(' ')
+        bagB = knowledge[index].split(' ')
+        uniqueWords = set(bagA).union(set(bagB))
+
+        numWordsA = dict.fromkeys(uniqueWords, 0)
+        for word in bagA:
+            numWordsA[word] += 1
+
+        numWordsB = dict.fromkeys(uniqueWords, 0)
+        for word in bagB:
+            numWordsB[word] += 1
+
+        tfA = computeTF(numWordsA, bagA)
+        tfB = computeTF(numWordsB, bagB)
+
+        idfs = computeIDF([numWordsA, numWordsB])
+
+        tfidfA = computeTFIDF(tfA, idfs)
+        tfidfB = computeTFIDF(tfB, idfs)
+
+        cosine = calculateCosineSimilarity(tfidfA, tfidfB)
+        return cosine
+
+    return 0
+
+
+def wikiCheck(query):
+    """
+    INCOMPLETE
+    Checks wiki for the query and if found, outputs the first three sentences.
+    :param query:
+    :return: nothing.
+    """
+    try:
+        query = query.strip("check wiki ")
+        print(query)
+        checkPage: list = fandom.search(query, results=1)
+        currentPage = fandom.page(pageid=checkPage[0][1])
+        plain_text = str(currentPage.plain_text)
+
+        plain_text = plain_text.strip(currentPage.title)
+        expr = re.compile(r'\n.\n(.*?)\n.\n(.*)\n')
+        # strips title and quotes from plain text so only sentences remain
+        plain_text = expr.sub('', plain_text)
+
+        totalLine: str = ""
+        sentenceCounter: int = 0
+        for index, line in enumerate(plain_text):
+            if sentenceCounter == 3:
+                break
+            totalLine += line
+            if len(totalLine) > 4:
+                if totalLine[-1] == ".":
+                    print(totalLine)
+                    if totalLine[0].isupper() and totalLine[-2] != "(b.":
+                        sentenceCounter += 1
+                        print(totalLine)
+                        totalLine = ""
+                    else:
+                        continue
+
+    except fandom.error.PageError:
+        print("Could not find a matching page!")
+
+    return
+
+
+# main
 def main():
     kern = aiml.Kernel()
     kern.setTextEncoding(None)
@@ -183,9 +269,11 @@ def main():
                 break
             responseAgent = 'aiml'
             answer: str = kern.respond(query)
-            checkSimilarWords(query)
-            tfidf = calculateTFIDFofInput(query)
-            # if tfidf > 0:
+            cosine = tfidfAndCosineCheck(query)
+            if cosine > 0.4:
+                print("Cosine over 0.4! ", cosine)
+            elif cosine == 0:
+                print("Error occurred in cosine check.")
 
             if answer[0] == '#':
                 params: list[str] = answer[1:].split('$')
@@ -194,42 +282,16 @@ def main():
                     speak(params[1])
                     break
                 elif command == 2:
-                    # tells a joke
+                    # tells a joke from pyjokes library
                     speak(pyjokes.get_joke())
                 elif command == 3:
-                    # fandom wikipedia api
-                    try:
-                        query = query.strip("check wiki ")
-                        print(query)
-                        checkPage: list = fandom.search(query, results=1)
-                        currentPage = fandom.page(pageid=checkPage[0][1])
-                        plain_text = str(currentPage.plain_text)
-
-                        plain_text = plain_text.strip(currentPage.title)
-                        expr = re.compile(r'\n.\n(.*?)\n.\n(.*)\n')
-                        # strips title and quotes from plain text so only sentences remain
-                        plain_text = expr.sub('', plain_text)
-
-                        totalLine: str = ""
-                        sentenceCounter: int = 0
-                        for index, line in enumerate(plain_text):
-                            if sentenceCounter == 3:
-                                break
-                            totalLine += line
-                            if len(totalLine) > 4:
-                                if totalLine[-1] == ".":
-                                    print(totalLine)
-                                    if totalLine[0].isupper() and totalLine[-2] != "(b.":
-                                        sentenceCounter += 1
-                                        print(totalLine)
-                                        totalLine = ""
-                                    else:
-                                        continue
-
-                    except fandom.error.PageError:
-                        print("Could not find a matching page!")
-
+                    # fandom wikipedia api function called
+                    # wikiCheck(query)
+                    print("needs fixing!")
                 elif command == 31:  # if input pattern is "I know that * is *"
+
+                    # FIRST ORDER LOGIC - SET FACT
+
                     object, subject = params[1].split(' is ')
                     expr = read_expr(subject + '(' + object + ')')
                     # >>> ADD SOME CODES HERE to make sure expr does not contradict
@@ -237,6 +299,9 @@ def main():
                     kb.append(expr)
                     print('OK, I will remember that', object, 'is', subject)
                 elif command == 32:  # if the input pattern is "check that * is *"
+
+                    # FIRST ORDER LOGIC - CHECK FACT
+
                     object, subject = params[1].split(' is ')
                     expr = read_expr(subject + '(' + object + ')')
                     answer = ResolutionProver().prove(expr, kb, verbose=True)
