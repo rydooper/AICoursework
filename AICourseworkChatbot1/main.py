@@ -75,7 +75,7 @@ def greetUser():
     else:
         speak("Good evening!")
 
-    AIName = "Dave version 1 point 0 "
+    AIName = "Dave version 1 point 1"
     speak("I am the assistant")
     speak(AIName)
 
@@ -173,6 +173,7 @@ def tfidfAndCosineCheck(query):
     listData.remove('question')
     listData.remove(' answer')
     knowledge = listData
+    cos = []
     for index, cells in enumerate(listData):
         bagA = query.split(' ')
         bagB = knowledge[index].split(' ')
@@ -195,9 +196,8 @@ def tfidfAndCosineCheck(query):
         tfidfB = computeTFIDF(tfB, idfs)
 
         cosine = calculateCosineSimilarity(tfidfA, tfidfB)
-        return cosine
-
-    return 0
+        cos.append([float(cosine), listData[index]])
+    return cos
 
 
 def wikiCheck(query):
@@ -246,12 +246,14 @@ def main():
     kern = aiml.Kernel()
     kern.setTextEncoding(None)
     kern.bootstrap(learnFiles="spnChatbot1-aiml.xml")
+
     apologyText: str = "Try again, I'll do better next time! "
+    takingQueries: bool = True
+    responded: bool = False
 
     greetUser()
     speak("Welcome to the spn chat bot!")
-    takingQueries: bool = True
-    print("Select which type of input you would like to use: [1] typing [2] voice \n")
+    speak("Select which type of input you would like to use: [1] typing [2] voice \n")
     inputType: str = input("> ")
     if inputType == "1" or inputType == "2":
         speak("What would you like to ask me? ")
@@ -260,7 +262,8 @@ def main():
                 try:
                     query: str = input("> ").lower()
                 except (KeyboardInterrupt, EOFError) as e:
-                    print("Keyboard input error,", e, " shutting down!")
+                    textToSpeak = "Keyboard input error,", e, " shutting down!"
+                    speak(textToSpeak)
                     break
             elif inputType == "2":
                 query: str = takeCommand().lower()
@@ -268,13 +271,14 @@ def main():
                 speak("Invalid input detected, exiting!")
                 break
             responseAgent = 'aiml'
+            responded = False
             answer: str = kern.respond(query)
-            cosine = tfidfAndCosineCheck(query)
-            if cosine > 0.4:
-                print("Cosine over 0.4! ", cosine)
-            elif cosine == 0:
-                print("Error occurred in cosine check.")
-
+            cosineList = tfidfAndCosineCheck(query)
+            for count, item in enumerate(cosineList):
+                if item[0] > 0.4:
+                    textToSpeak = "The answer is " + cosineList[count + 1][1]
+                    speak(textToSpeak)
+                    responded = True
             if answer[0] == '#':
                 params: list[str] = answer[1:].split('$')
                 command: int = int(params[0])
@@ -282,7 +286,7 @@ def main():
                     speak(params[1])
                     break
                 elif command == 2:
-                    # tells a joke from pyjokes library
+                    # tells a joke from python jokes library
                     speak(pyjokes.get_joke())
                 elif command == 3:
                     # fandom wikipedia api function called
@@ -309,18 +313,18 @@ def main():
                         print('Correct.')
                     else:
                         print('It may not be true.')
-                        # >> This is not an ideal answer.
-                        # >> ADD SOME CODES HERE to find if expr is false, then give a
-                        # definite response: either "Incorrect" or "Sorry I don't know."
+                    # >> This is not an ideal answer.
+                    # >> ADD SOME CODES HERE to find if expr is false, then give a
+                    # definite response: either "Incorrect" or "Sorry I don't know."
 
                 elif command == 98:
                     speak("closing program down now")
                     takingQueries = False
-                elif command == 99:
+                elif command == 99 and responded == False:
                     speak("Sorry, I didn't understand that one!")
                     speak(apologyText)
-            else:
-                speak(answer)
+                else:
+                    speak(answer)
     else:
         speak("This is not a valid response. Closing program.")
 
