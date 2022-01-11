@@ -10,7 +10,6 @@ from csv import reader
 
 import nltk
 import numpy as np
-from nltk import ResolutionProverCommand
 from nltk.inference import ResolutionProver
 from nltk.sem import Expression
 from sklearn.metrics.pairwise import cosine_similarity
@@ -97,14 +96,15 @@ def takeCommand():
     """
     r = sr.Recognizer()
     print(sr.Microphone.list_microphone_names())
-    mic = sr.Microphone(device_index=2)  # 3 for my home pc  # 2 for my laptop
+    chooseMic = int(input("Input the number of the microphone you wish to use: \n >"))
+    mic = sr.Microphone(device_index=chooseMic)  # 3 for my home pc  # 2 for my laptop
     with mic as source:
         print("listening!")
         r.pause_threshold = 1
         audio = r.listen(source)
 
     try:
-        print("recognising")
+        print("recognising!")
         query = r.recognize_google(audio, language="en-UK")
         print("user said: ")
         print(query, "\n")
@@ -130,7 +130,7 @@ def calculateCosineSimilarity(tfidfA, tfidfB):
     tempB = list(tfidfB.values())
     bagB = np.array(tempB)
 
-    # calculate cosine similarity of tfidfs
+    # calculate cosine similarity of TFIDFs
     cosineSim = cosine_similarity(bagA.reshape(1, -1), bagB.reshape(1, -1))
     cos = float(cosineSim)
     return cos
@@ -169,17 +169,17 @@ def computeIDF(documents):
     return idfDict
 
 
-def computeTFIDF(tfBag, idfs):
+def computeTFIDF(tfBag, IDFs):
     """
     Calculates the TFIDF.
 
     :param tfBag:
-    :param idfs:
+    :param IDFs:
     :return: tfidf.
     """
     tfidf = {}
     for word, val in tfBag.items():
-        tfidf[word] = val * idfs[word]
+        tfidf[word] = val * IDFs[word]
     return tfidf
 
 
@@ -220,10 +220,10 @@ def tfidfAndCosineCheck(query):
         tfA = computeTF(numWordsA, bagA)
         tfB = computeTF(numWordsB, bagB)
 
-        idfs = computeIDF([numWordsA, numWordsB])
+        IDFs = computeIDF([numWordsA, numWordsB])
 
-        tfidfA = computeTFIDF(tfA, idfs)
-        tfidfB = computeTFIDF(tfB, idfs)
+        tfidfA = computeTFIDF(tfA, IDFs)
+        tfidfB = computeTFIDF(tfB, IDFs)
 
         cosine = calculateCosineSimilarity(tfidfA, tfidfB)
         cos.append([float(cosine), listData[index]])
@@ -327,32 +327,29 @@ def main():
                     # >>> ADD SOME CODES HERE to make sure expr does not contradict
                     # with the KB before appending, otherwise show an error message.
                     if expr in kb:
-                        print("already found in kb!")
+                        speak("This fact is already within my knowledge set! Try something else.")
 
                     contradicts = ResolutionProver().prove(expr, kb)
                     if contradicts:
-                        print("Cannot add a contradicting statement.")
+                        speak("Cannot add a contradicting statement.")
                     else:
                         kb.append(expr)
-                        print('OK, I will remember that', item, 'is', subject)
+                        textToSpeak = "OK, I will remember that", item, "is", subject
+                        speak(textToSpeak)
 
                 elif command == 32:
                     # LOGIC - "check that * is *" - statements
                     item, subject = params[1].split(' is ')
                     expr = read_expr(subject + '(' + item + ')')
                     response = ResolutionProver().prove(expr, kb)
-                    print(item, subject, expr, response)
-                    print(kb)
                     if response:
-                        print("You're correct!")
+                        speak("You're correct!")
                     else:
-                        print("First proven false.")
                         inverseAnswer = ResolutionProver().prove((-expr), kb)
-                        # inverseAnswer = False
                         if inverseAnswer:
-                            print("You're incorrect.")
+                            speak("You're incorrect.")
                         else:
-                            print("I am unclear if this is true or false. Try searching for an answer elsewhere.")
+                            speak("I am unclear if this is true or false. Try searching for an answer elsewhere.")
 
                 elif command == 98:
                     # closes the program down
