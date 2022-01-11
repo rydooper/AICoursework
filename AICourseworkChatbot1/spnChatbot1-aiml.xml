@@ -120,16 +120,9 @@
         </template>
     </category>
 
-    <category> <pattern> JOKE * </pattern>
+    <category> <pattern> TELL ME A JOKE </pattern>
         <template>
             <srai> TELL A JOKE </srai>
-        </template>
-    </category>
-
-<!-- default reaction to user input -->
-    <category> <pattern> * </pattern>
-        <template>
-            #99$ <star index="99"/>
         </template>
     </category>
 
@@ -148,6 +141,24 @@
     <category> <pattern> STOP LISTENING * </pattern>
         <template>
             #98$ <star index="98"/>
+        </template>
+    </category>
+
+    <category> <pattern> I KNOW THAT * IS * </pattern>
+        <template>
+            #31$
+            <star index="1"/>
+            is
+            <star index="2"/>
+        </template>
+    </category>
+
+    <category> <pattern> CHECK THAT * IS * </pattern>
+        <template>
+            #32$
+            <star index="1"/>
+            is
+            <star index="2"/>
         </template>
     </category>
 </aiml>

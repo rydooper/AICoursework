@@ -2,14 +2,15 @@
 # chatbot 1 - supernatural
 
 # imports
-import csv
 import datetime
 import math
+import random
 import re
 from csv import reader
 
 import nltk
 import numpy as np
+from nltk import ResolutionProverCommand
 from nltk.inference import ResolutionProver
 from nltk.sem import Expression
 from sklearn.metrics.pairwise import cosine_similarity
@@ -43,17 +44,24 @@ engine = pyttsx3.init("sapi5")
 voices = engine.getProperty("voices")
 engine.setProperty("voice", voices[1].id)
 fandom.set_wiki("supernatural")
+kern = aiml.Kernel()
+kern.setTextEncoding(None)
+kern.bootstrap(learnFiles="spnChatbot1-aiml.xml")
 
 # setup knowledge dataset
 read_expr = Expression.fromstring
 kb: list = []
-data = pd.read_csv('kb.csv', header=None)
-[kb.append(read_expr(row)) for row in data[0]]
+kbData = pd.read_csv('kb.csv', header=None)
+[kb.append(read_expr(row)) for row in kbData[0]]
+for knowledge in kb:
+    if not ResolutionProver().prove(knowledge, kb):
+        print("Error in kb!")
 
 
 def speak(audio):
     """
     Speaks the given input audio.
+
     :param audio:
     :return: nothing
     """
@@ -64,7 +72,8 @@ def speak(audio):
 
 def greetUser():
     """
-    Greets the user based on the hour and speaks the AI name
+    Greets the user based on the hour and speaks the AI name.
+
     :return: nothing
     """
     hour = int(datetime.datetime.now().hour)
@@ -83,6 +92,7 @@ def greetUser():
 def takeCommand():
     """
     Takes input from the users microphone and interprets using google translates API.
+
     :return: query or "none"
     """
     r = sr.Recognizer()
@@ -127,6 +137,13 @@ def calculateCosineSimilarity(tfidfA, tfidfB):
 
 
 def computeTF(wordDict, bagWords):
+    """
+    Calculates the TF.
+
+    :param wordDict:
+    :param bagWords:
+    :return: tfDict.
+    """
     tfDict = {}
     bagWordsCount = len(bagWords)
     for word, count in wordDict.items():
@@ -135,6 +152,12 @@ def computeTF(wordDict, bagWords):
 
 
 def computeIDF(documents):
+    """
+    Calculates the IDF.
+
+    :param documents:
+    :return: idfDict.
+    """
     N = len(documents[0])
     idfDict = dict.fromkeys(documents[0].keys(), 0)
     for document in documents:
@@ -147,6 +170,13 @@ def computeIDF(documents):
 
 
 def computeTFIDF(tfBag, idfs):
+    """
+    Calculates the TFIDF.
+
+    :param tfBag:
+    :param idfs:
+    :return: tfidf.
+    """
     tfidf = {}
     for word, val in tfBag.items():
         tfidf[word] = val * idfs[word]
@@ -159,7 +189,7 @@ def tfidfAndCosineCheck(query):
     Adapted from this github: https://github.com/mayank408/TFIDF/blob/master/TFIDF.ipynb
 
     :param query:
-    :return: nothing.
+    :return: cos.
     """
     if "check wiki" in query:
         query = query.strip("check wiki ")
@@ -171,7 +201,7 @@ def tfidfAndCosineCheck(query):
             listData += lines
 
     listData.remove('question')
-    listData.remove(' answer')
+    listData.remove('answer')
     knowledge = listData
     cos = []
     for index, cells in enumerate(listData):
@@ -243,13 +273,14 @@ def wikiCheck(query):
 
 # main
 def main():
-    kern = aiml.Kernel()
-    kern.setTextEncoding(None)
-    kern.bootstrap(learnFiles="spnChatbot1-aiml.xml")
+    """
+    Main.
+
+    :return: nothing.
+    """
 
     apologyText: str = "Try again, I'll do better next time! "
     takingQueries: bool = True
-    responded: bool = False
 
     greetUser()
     speak("Welcome to the spn chat bot!")
@@ -271,60 +302,80 @@ def main():
                 speak("Invalid input detected, exiting!")
                 break
             responseAgent = 'aiml'
-            responded = False
             answer: str = kern.respond(query)
-            cosineList = tfidfAndCosineCheck(query)
-            for count, item in enumerate(cosineList):
-                if item[0] > 0.4:
-                    textToSpeak = "The answer is " + cosineList[count + 1][1]
-                    speak(textToSpeak)
-                    responded = True
+
             if answer[0] == '#':
-                params: list[str] = answer[1:].split('$')
-                command: int = int(params[0])
+                params: list[str] = answer[1:].split("$")
+                command = int(params[0])
+
                 if command == 0:
                     speak(params[1])
                     break
+
                 elif command == 2:
                     # tells a joke from python jokes library
                     speak(pyjokes.get_joke())
+
                 elif command == 3:
                     # fandom wikipedia api function called
-                    # wikiCheck(query)
-                    print("needs fixing!")
-                elif command == 31:  # if input pattern is "I know that * is *"
+                    wikiCheck(query)
 
-                    # FIRST ORDER LOGIC - SET FACT
-
-                    object, subject = params[1].split(' is ')
-                    expr = read_expr(subject + '(' + object + ')')
+                elif command == 31:
+                    # LOGIC - "I know that * is *" statements
+                    item, subject = params[1].split(' is ')
+                    expr = read_expr(subject + '(' + item + ')')
                     # >>> ADD SOME CODES HERE to make sure expr does not contradict
                     # with the KB before appending, otherwise show an error message.
-                    kb.append(expr)
-                    print('OK, I will remember that', object, 'is', subject)
-                elif command == 32:  # if the input pattern is "check that * is *"
+                    if expr in kb:
+                        print("already found in kb!")
 
-                    # FIRST ORDER LOGIC - CHECK FACT
-
-                    object, subject = params[1].split(' is ')
-                    expr = read_expr(subject + '(' + object + ')')
-                    answer = ResolutionProver().prove(expr, kb, verbose=True)
-                    if answer:
-                        print('Correct.')
+                    contradicts = ResolutionProver().prove(expr, kb)
+                    if contradicts:
+                        print("Cannot add a contradicting statement.")
                     else:
-                        print('It may not be true.')
-                    # >> This is not an ideal answer.
-                    # >> ADD SOME CODES HERE to find if expr is false, then give a
-                    # definite response: either "Incorrect" or "Sorry I don't know."
+                        kb.append(expr)
+                        print('OK, I will remember that', item, 'is', subject)
+
+                elif command == 32:
+                    # LOGIC - "check that * is *" - statements
+                    item, subject = params[1].split(' is ')
+                    expr = read_expr(subject + '(' + item + ')')
+                    response = ResolutionProver().prove(expr, kb)
+                    print(item, subject, expr, response)
+                    print(kb)
+                    if response:
+                        print("You're correct!")
+                    else:
+                        print("First proven false.")
+                        inverseAnswer = ResolutionProver().prove((-expr), kb)
+                        # inverseAnswer = False
+                        if inverseAnswer:
+                            print("You're incorrect.")
+                        else:
+                            print("I am unclear if this is true or false. Try searching for an answer elsewhere.")
 
                 elif command == 98:
+                    # closes the program down
                     speak("closing program down now")
                     takingQueries = False
-                elif command == 99 and responded == False:
+
+                elif command == 99:
+                    # given if an error occurs
                     speak("Sorry, I didn't understand that one!")
                     speak(apologyText)
-                else:
-                    speak(answer)
+
+            else:
+                # checks the knowledge.csv file and compares against knowledge given using tfidf and cosine
+                cosineList = tfidfAndCosineCheck(query)
+                for count, item in enumerate(cosineList):
+                    if item[0] > 0.5:
+                        QAnswer = cosineList[count + 1][1]
+                        if "[" in QAnswer or "]" in QAnswer:
+                            answerList = QAnswer.split(";")
+                            randomChoice = str(random.choice(answerList))
+                            QAnswer = randomChoice.strip("[]")
+                        textToSpeak = "The answer is " + QAnswer
+                        speak(textToSpeak)
     else:
         speak("This is not a valid response. Closing program.")
 
