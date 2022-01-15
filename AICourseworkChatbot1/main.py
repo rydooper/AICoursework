@@ -7,26 +7,17 @@ import math
 import random
 import re
 from csv import reader
-
-import nltk
 import numpy as np
 from nltk.inference import ResolutionProver
 from nltk.sem import Expression
 from sklearn.metrics.pairwise import cosine_similarity
-
-if nltk.download('punkt'):
-    print("nltk - punkt installed")
-if nltk.download('averaged_perception_tagger'):
-    print("nltk - averaged_perception_tagger installed")
-if nltk.download('brown'):
-    print("nltk - brown installed")
-
 import aiml
 import pyjokes
 import pyttsx3
 import speech_recognition as sr
 import fandom
 import pandas as pd
+import simpful as sf
 
 
 # classes
@@ -83,21 +74,34 @@ def greetUser():
     else:
         speak("Good evening!")
 
-    AIName = "Dave version 1 point 1"
+    AIName = "Dave version 2 point 0"
     speak("I am the assistant")
     speak(AIName)
 
 
-def takeCommand():
+def getMicrophone():
+    """
+    Takes input from user to get microphone.
+
+    :return: mic
+    """
+
+    r = sr.Recognizer()
+    print(sr.Microphone.list_microphone_names())
+    print("Starting from 0 as the first microphone, input the number of the microphone you wish to use:")
+    chooseMic = int(input("> "))
+    mic = sr.Microphone(device_index=chooseMic)  # 3 for my home pc  # 2 for my laptop
+    return mic
+
+
+def takeCommand(mic):
     """
     Takes input from the users microphone and interprets using google translates API.
 
     :return: query or "none"
     """
     r = sr.Recognizer()
-    print(sr.Microphone.list_microphone_names())
-    chooseMic = int(input("Input the number of the microphone you wish to use: \n >"))
-    mic = sr.Microphone(device_index=chooseMic)  # 3 for my home pc  # 2 for my laptop
+
     with mic as source:
         print("listening!")
         r.pause_threshold = 1
@@ -191,8 +195,6 @@ def tfidfAndCosineCheck(query):
     :param query:
     :return: cos.
     """
-    if "check wiki" in query:
-        query = query.strip("check wiki ")
 
     with open("knowledge.csv", mode='r') as csv_file:
         allData = reader(csv_file)
@@ -202,11 +204,11 @@ def tfidfAndCosineCheck(query):
 
     listData.remove('question')
     listData.remove('answer')
-    knowledge = listData
+    allKnowledge = listData
     cos = []
     for index, cells in enumerate(listData):
         bagA = query.split(' ')
-        bagB = knowledge[index].split(' ')
+        bagB = allKnowledge[index].split(' ')
         uniqueWords = set(bagA).union(set(bagB))
 
         numWordsA = dict.fromkeys(uniqueWords, 0)
@@ -232,14 +234,13 @@ def tfidfAndCosineCheck(query):
 
 def wikiCheck(query):
     """
-    INCOMPLETE
     Checks wiki for the query and if found, outputs the first three sentences.
     :param query:
     :return: nothing.
     """
     try:
         query = query.strip("check wiki ")
-        print(query)
+        query = query.strip("get summary ")
         checkPage: list = fandom.search(query, results=1)
         currentPage = fandom.page(pageid=checkPage[0][1])
         plain_text = str(currentPage.plain_text)
@@ -252,22 +253,76 @@ def wikiCheck(query):
         totalLine: str = ""
         sentenceCounter: int = 0
         for index, line in enumerate(plain_text):
+            # prints 3 sentence summary of page
             if sentenceCounter == 3:
                 break
             totalLine += line
             if len(totalLine) > 4:
                 if totalLine[-1] == ".":
-                    print(totalLine)
-                    if totalLine[0].isupper() and totalLine[-2] != "(b.":
+                    if totalLine[-2] != "b" and totalLine[-2] != "d":
                         sentenceCounter += 1
-                        print(totalLine)
+                        speak(totalLine)
                         totalLine = ""
-                    else:
-                        continue
+                else:
+                    continue
 
-    except fandom.error.PageError:
-        print("Could not find a matching page!")
+    except Exception:
+        speak("I couldn't find a matching page on the Supernatural wiki! Try this link and searching it manually: ")
+        print("https://supernatural.fandom.com/wiki/Supernatural_Wiki")
+    return
 
+
+def fuzzyRating(inputType, mic):
+    """
+    Rates the given episode based upon user input using fuzzy logic.
+
+    :return: nothing
+    """
+    episodeName = ""
+    actingRating = ""
+    plotRating = ""
+
+    FS = sf.FuzzySystem(show_banner=False)
+    TLV = sf.AutoTriangle(3, terms=['poor', 'average', 'good'], universe_of_discourse=[0, 10])
+    FS.add_linguistic_variable("acting", TLV)
+    FS.add_linguistic_variable("plot", TLV)
+
+    lowRating = sf.TriangleFuzzySet(0, 0, 13, term="low")
+    mediumRating = sf.TriangleFuzzySet(0, 13, 25, term="medium")
+    highRating = sf.TriangleFuzzySet(13, 25, 25, term="high")
+    FS.add_linguistic_variable("rating", sf.LinguisticVariable([lowRating, mediumRating, highRating],
+                                                               universe_of_discourse=[0, 25]))
+
+    FS.add_rules([
+        "IF (acting IS poor) OR (plot IS poor) THEN (rating IS low)",
+        "IF (acting IS average) THEN (rating IS medium)",
+        "IF (acting IS good) OR (plot IS good) THEN (rating IS high)"
+    ])
+    speak("Input the name of the episode you wish to rate: ")
+    if inputType == "1":
+        episodeName = input("> ")
+    elif inputType == "2":
+        episodeName: str = takeCommand(mic).lower()
+    speak("Input how you would rate the acting (from 0-25): ")
+    if inputType == "1":
+        actingRating = input("> ")
+    elif inputType == "2":
+        actingRating: str = takeCommand(mic).lower()
+    speak("Input how would rate the plot (from 0-25): ")
+    if inputType == "1":
+        plotRating = input("> ")
+    elif inputType == "2":
+        plotRating: str = takeCommand(mic).lower()
+
+    FS.set_variable("acting", actingRating)
+    FS.set_variable("plot", plotRating)
+
+    episodeFuzzRating = str(FS.inference())
+    episode = [episodeName, actingRating, plotRating, episodeFuzzRating]
+
+    numRating = re.findall('[0-9]+', episodeFuzzRating)
+    textToSpeak = "Given your input, the episode " + episodeName + " was rated at " + str(numRating[0])
+    speak(textToSpeak)
     return
 
 
@@ -278,15 +333,16 @@ def main():
 
     :return: nothing.
     """
-
-    apologyText: str = "Try again, I'll do better next time! "
     takingQueries: bool = True
 
+    mic = 0
     greetUser()
-    speak("Welcome to the spn chat bot!")
+    speak("Welcome to the Supernatural chat bot!")
     speak("Select which type of input you would like to use: [1] typing [2] voice \n")
     inputType: str = input("> ")
     if inputType == "1" or inputType == "2":
+        if inputType == "2":
+            mic = getMicrophone()
         speak("What would you like to ask me? ")
         while takingQueries:
             if inputType == "1":
@@ -297,14 +353,18 @@ def main():
                     speak(textToSpeak)
                     break
             elif inputType == "2":
-                query: str = takeCommand().lower()
+                query: str = takeCommand(mic).lower()
             else:
                 speak("Invalid input detected, exiting!")
                 break
             responseAgent = 'aiml'
             answer: str = kern.respond(query)
+            answered = False
 
-            if answer[0] == '#':
+            if answer[0] != "#":
+                speak(answer)
+
+            if answer[0] == "#":
                 params: list[str] = answer[1:].split("$")
                 command = int(params[0])
 
@@ -317,24 +377,21 @@ def main():
                     speak(pyjokes.get_joke())
 
                 elif command == 3:
-                    # fandom wikipedia api function called
+                    # fandom wikipedia api function
                     wikiCheck(query)
 
                 elif command == 31:
                     # LOGIC - "I know that * is *" statements
                     item, subject = params[1].split(' is ')
                     expr = read_expr(subject + '(' + item + ')')
-                    # >>> ADD SOME CODES HERE to make sure expr does not contradict
-                    # with the KB before appending, otherwise show an error message.
+                    contradicts = ResolutionProver().prove((-expr), kb)
                     if expr in kb:
                         speak("This fact is already within my knowledge set! Try something else.")
-
-                    contradicts = ResolutionProver().prove(expr, kb)
-                    if contradicts:
-                        speak("Cannot add a contradicting statement.")
+                    elif contradicts == True:
+                        speak("I cannot add a contradicting statement!")
                     else:
                         kb.append(expr)
-                        textToSpeak = "OK, I will remember that", item, "is", subject
+                        textToSpeak = "OK, I will remember that" + item + " is " + subject
                         speak(textToSpeak)
 
                 elif command == 32:
@@ -342,38 +399,54 @@ def main():
                     item, subject = params[1].split(' is ')
                     expr = read_expr(subject + '(' + item + ')')
                     response = ResolutionProver().prove(expr, kb)
+
                     if response:
                         speak("You're correct!")
+                        textToSpeak = str(item + " is " + subject)
+                        speak(textToSpeak)
+
                     else:
                         inverseAnswer = ResolutionProver().prove((-expr), kb)
                         if inverseAnswer:
                             speak("You're incorrect.")
+                            textToSpeak = str(item + " is not " + subject)
+                            speak(textToSpeak)
                         else:
                             speak("I am unclear if this is true or false. Try searching for an answer elsewhere.")
 
+                elif command == 33:
+                    # LOGIC - fuzzy logic to rate specific episodes of supernatural
+                    fuzzyRating(inputType, mic)
+
                 elif command == 98:
                     # closes the program down
-                    speak("closing program down now")
+                    speak("Closing program down now, goodbye!")
                     takingQueries = False
 
                 elif command == 99:
-                    # given if an error occurs
-                    speak("Sorry, I didn't understand that one!")
-                    speak(apologyText)
+                    # checks the knowledge.csv file and compares against knowledge given using tfidf and cosine
+                    cosineList = tfidfAndCosineCheck(query)
+                    maxItem = max(cosineList)
+                    for count, item in enumerate(cosineList):
+                        if maxItem[0] == 0.0:
+                            break
+                        if item == maxItem:
+                            QAnswer = cosineList[count + 1][1]
+                            if "[" in QAnswer or "]" in QAnswer:
+                                # randomly picks an item if the answer is a list
+                                answerList = QAnswer.split(";")
+                                randomChoice = str(random.choice(answerList))
+                                QAnswer = randomChoice.strip("[]")
+                            textToSpeak = "The answer is " + QAnswer
+                            speak(textToSpeak)
+                            answered = True
+                            break
+                    if not answered:
+                        # only occurs if no cosine value is over 0.5 (therefore no answer is in the knowledge.csv file)
+                        speak("I'm afraid I can't answer that, try asking another chatbot instead!")
 
-            else:
-                # checks the knowledge.csv file and compares against knowledge given using tfidf and cosine
-                cosineList = tfidfAndCosineCheck(query)
-                for count, item in enumerate(cosineList):
-                    if item[0] > 0.5:
-                        QAnswer = cosineList[count + 1][1]
-                        if "[" in QAnswer or "]" in QAnswer:
-                            answerList = QAnswer.split(";")
-                            randomChoice = str(random.choice(answerList))
-                            QAnswer = randomChoice.strip("[]")
-                        textToSpeak = "The answer is " + QAnswer
-                        speak(textToSpeak)
     else:
+        # occurs if the user enters an invalid input type
         speak("This is not a valid response. Closing program.")
 
 

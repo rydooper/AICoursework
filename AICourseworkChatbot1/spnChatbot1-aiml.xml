@@ -4,7 +4,7 @@
     <category> <pattern> HELLO </pattern>
         <template>
             <random>
-                <li>Hello! How are you today? </li>
+                <li>Hello! </li>
                 <li>Hey there! </li>
                 <li>Howdy! </li>
                 <li>Hi! </li>
@@ -12,7 +12,7 @@
         </template>
     </category>
 
-    <category> <pattern> HELLO * </pattern>
+    <category> <pattern> HI </pattern>
         <template>
             <srai> HELLO </srai>
         </template>
@@ -45,6 +45,7 @@
     <category> <pattern> GOODBYE </pattern>
         <template>
             Talk to you some other time, take care!
+            <srai> STOP LISTENING </srai>
         </template>
     </category>
 
@@ -75,48 +76,11 @@
         <template> <srai> GOOD NIGHT </srai></template>
     </category>
 
-
-<!-- WHAT IS QUESTIONS -->
-
-    <category> <pattern> WHAT IS A * </pattern>
-        <template>
-            <srai> CHECK WIKI * <star/> </srai>
-        </template>
-    </category>
-
-    <category> <pattern> WHAT IS AN * </pattern>
-        <template>
-            <srai> WHAT IS A <star/> </srai>
-        </template>
-    </category>
-
-    <category> <pattern> WHAT IS * </pattern>
-        <template>
-            <srai> WHAT IS A <star/> </srai>
-        </template>
-    </category>
-
-    <category> <pattern> DEFINE * </pattern>
-        <template>
-            <srai> WHAT IS A <star/> </srai>
-        </template>
-    </category>
-
-    <category> <pattern> WHO IS * </pattern>
-        <template>
-            <srai> WHAT IS A <star/> </srai>
-        </template>
-    </category>
-
-    <category> <pattern> WHY IS * </pattern>
-        <template>
-            <srai> WHAT IS A <star/> </srai>
-        </template>
-    </category>
+<!-- QUESTIONS -->
 
     <category> <pattern> GET SUMMARY * </pattern>
         <template>
-            <srai> WHAT IS A <star/> </srai>
+            <srai> CHECK WIKI * <star/> </srai>
         </template>
     </category>
 
@@ -138,9 +102,21 @@
         </template>
     </category>
 
-    <category> <pattern> STOP LISTENING * </pattern>
+    <category> <pattern> STOP LISTENING </pattern>
         <template>
             #98$ <star index="98"/>
+        </template>
+    </category>
+
+    <category> <pattern> END PROGRAM </pattern>
+        <template>
+           <srai> STOP LISTENING </srai>
+        </template>
+    </category>
+
+    <category> <pattern> CLOSE PROGRAM </pattern>
+        <template>
+           <srai> STOP LISTENING </srai>
         </template>
     </category>
 
@@ -160,5 +136,21 @@
             is
             <star index="2"/>
         </template>
+    </category>
+
+    <category> <pattern> RATE EPISODE </pattern>
+        <template>
+            #33
+        </template>
+    </category>
+
+    <category> <pattern> RATING EPISODE </pattern>
+    <template>
+        <srai> RATE EPISODE </srai>
+    </template>
+    </category>
+
+    <category> <pattern> * </pattern>
+        <template> #99$ </template>
     </category>
 </aiml>
