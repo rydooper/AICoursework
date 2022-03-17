@@ -5,13 +5,6 @@ from tensorflow import keras
 import numpy as np
 import keras.preprocessing.image_dataset as id
 
-'''image_list = []
-for filename in glob.glob('C:\\Users\\ryder\\OneDrive\\Pictures\\Supernatural Dataset\\DW\\*.jpg'): #assuming gif
-    im=Image.open(filename)
-    image_list.append(im)
-
-print(image_list)'''
-
 training_data = id.image_dataset_from_directory(
     directory="C:/Users/ryder/Downloads/Supernatural_Train_Dataset/",
     labels='inferred',

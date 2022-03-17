@@ -102,6 +102,12 @@
         </template>
     </category>
 
+    <category> <pattern> USE NEURAL NETWORK </pattern>
+        <template>
+            #4$ <star index="4"/>
+        </template>
+    </category>
+
     <category> <pattern> STOP LISTENING </pattern>
         <template>
             #98$ <star index="98"/>
@@ -138,16 +144,10 @@
         </template>
     </category>
 
-    <category> <pattern> RATE EPISODE </pattern>
+    <category> <pattern> RATE AN EPISODE </pattern>
         <template>
             #33
         </template>
-    </category>
-
-    <category> <pattern> RATING EPISODE </pattern>
-    <template>
-        <srai> RATE EPISODE </srai>
-    </template>
     </category>
 
     <category> <pattern> * </pattern>
