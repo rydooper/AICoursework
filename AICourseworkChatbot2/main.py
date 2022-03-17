@@ -3,21 +3,16 @@
 
 # imports
 import datetime
-import math
 import random
 import re
-from csv import reader
-import numpy as np
 from nltk.inference import ResolutionProver
 from nltk.sem import Expression
-from sklearn.metrics.pairwise import cosine_similarity
 import aiml
 import pyjokes
 import pyttsx3
 import speech_recognition as sr
 import fandom
 import pandas as pd
-import simpful as sf
 import knowledgeProcessing as kp
 
 
@@ -119,9 +114,11 @@ def takeCommand(mic):
         return "none"
     return query
 
+
 def wikiCheck(query):
     """
     Checks wiki for the query and if found, outputs the first three sentences.
+
     :param query:
     :return: nothing.
     """
@@ -157,6 +154,37 @@ def wikiCheck(query):
         speak("I couldn't find a matching page on the Supernatural wiki! Try this link and searching it manually: ")
         print("https://supernatural.fandom.com/wiki/Supernatural_Wiki")
     return
+
+
+def handleNeural(inputType, mic):
+    """
+    Handles all the Neural Network commands. In here, the user can rerun the CNN,
+    use the saved model to test an image or more.
+
+    :param inputType:
+    :param mic:
+    :return: nothing
+    """
+    print("Select what to do with neural network. "
+          "[1] Rerun CNN. "
+          "[2] Use h5 file (further options available). "
+          "[3] Exit. ")
+    if inputType == "1":
+        neuralChoice: str = input("> ")
+    else:
+        neuralChoice: str = takeCommand(mic).lower()
+    if neuralChoice == "1":
+        print("Rerunning network.")
+        # run network here
+    if neuralChoice == "2":
+        print("The network can be used to:"
+              "[1] test what an image is. "
+              "[2] View current networks' accuracy. ")
+        if inputType == "1":
+            neuralChoice2: str = input("> ")
+        else:
+            neuralChoice2: str = takeCommand(mic).lower()
+
 
 # main
 def main():
@@ -212,6 +240,9 @@ def main():
                     # fandom wikipedia api function
                     wikiCheck(query)
 
+                elif command == 4:
+                    handleNeural(inputType, mic)
+
                 elif command == 31:
                     # LOGIC - "I know that * is *" statements
                     item, subject = params[1].split(' is ')
@@ -219,7 +250,7 @@ def main():
                     contradicts = ResolutionProver().prove((-expr), kb)
                     if expr in kb:
                         speak("This fact is already within my knowledge set! Try something else.")
-                    elif contradicts == True:
+                    elif contradicts:
                         speak("I cannot add a contradicting statement!")
                     else:
                         kb.append(expr)

@@ -1,3 +1,10 @@
+import math
+from csv import reader
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+import simpful as sf
+
+
 def calculateCosineSimilarity(tfidfA, tfidfB):
     """
     Calculates the cosine similarity of query and knowledge bag.
