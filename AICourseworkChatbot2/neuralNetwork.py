@@ -1,61 +1,76 @@
 # CNN
-import kwargs
-import numpy as np
-import tensorflow as tf
 from tensorflow import keras
+from keras.preprocessing.image import ImageDataGenerator
 
-training_DS = keras.preprocessing.image_dataset_from_directory(
-    directory="C:/Users/ryder/Downloads/Supernatural_Train_Dataset/",
-    labels='inferred',
-    label_mode='categorical',
-    batch_size=10,
-    image_size=(500, 500),
-    shuffle=False,
-    subset="training",
-    seed=3,
-    interpolation="bilinear"
-)
-print(training_DS.element_spec)
-# training_DS.element_spec = tf.TensorShape([500, 500, 4])
-
-validation_DS = keras.preprocessing.image_dataset_from_directory(
-    directory='C:/Users/ryder/Downloads/Supernatural_Train_Dataset/',
-    labels='inferred',
-    label_mode='categorical',
-    batch_size=10,
-    image_size=(500, 500),
-    validation_split=0.2,
-    shuffle=False,
-    subset="validation",
-    seed=3,
-    interpolation="bilinear"
-)
-
-# validation_split = 0.2 eg
-# subset = validation
-# a seed
+classNames = ['Cas', 'DW', 'SW']
 
 
-output_classes = 3
-model = keras.Sequential(
-    [
-        keras.Input(shape=(500, 500, 3)),
-        keras.layers.Conv2D(128, kernel_size=(3, 3), activation="relu"),
-        keras.layers.MaxPooling2D(pool_size=(2, 2)),
-        keras.layers.Conv2D(64, kernel_size=(3, 3), activation="relu"),
-        keras.layers.MaxPooling2D(pool_size=(2, 2)),
-        keras.layers.Flatten(),
-        keras.layers.Dropout(0.5),
-        keras.layers.Dense(32, activation="relu"),
-        keras.layers.Dense(output_classes, activation="sigmoid"),
-    ]
-)
+def runModel():
+    output_classes = 3
 
-model.compile(optimizer='adam',
-              loss='categorical_crossentropy',
-              metrics=['accuracy'])
+    trainDir = r'C:/Users/ryder/OneDrive/Documents/GitHub-Laptop/supernatural-images-dataset/Supernatural_Train_Dataset/'
+    validDir = r'C:/Users/ryder/OneDrive/Documents/GitHub-Laptop/supernatural-images-dataset/Supernatural_Validation_Dataset/'
 
-# model.fit(training_DS, epochs=10, validation_data=validation_DS)
-model.fit(training_DS, epochs=10, validation_data=validation_DS, batch_size=10)
-# print(model.accuracy)
-model.save('supernaturalSWDWCas_Model.h5')
+    train_datagen = ImageDataGenerator(
+        rescale=1. / 255,
+        shear_range=0.2,
+        zoom_range=0.2,
+        horizontal_flip=True)
+
+    test_datagen = ImageDataGenerator(rescale=1. / 255)
+    train_generator = train_datagen.flow_from_directory(
+        directory=trainDir,
+        target_size=(500, 500),
+        color_mode="rgb",
+        classes=classNames,
+        batch_size=10,
+        class_mode="categorical",
+        shuffle=True,
+        seed=42
+    )
+
+    valid_generator = test_datagen.flow_from_directory(
+        directory=validDir,
+        target_size=(500, 500),
+        color_mode="rgb",
+        classes=classNames,
+        batch_size=10,
+        class_mode="categorical",
+        shuffle=True,
+        seed=42
+    )
+
+    model = keras.Sequential(
+        [
+            keras.Input(shape=(500, 500, 3)),
+            keras.layers.Conv2D(128, kernel_size=(3, 3), activation="relu"),
+            keras.layers.MaxPooling2D(pool_size=(2, 2)),
+            keras.layers.Conv2D(64, kernel_size=(3, 3), activation="relu"),
+            keras.layers.MaxPooling2D(pool_size=(2, 2)),
+            keras.layers.Flatten(),
+            keras.layers.Dropout(0.5),
+            keras.layers.Dense(32, activation="relu"),
+            keras.layers.Dense(output_classes, activation="sigmoid"),
+        ]
+    )
+
+    STEP_SIZE_TRAIN = train_generator.n // train_generator.batch_size
+    STEP_SIZE_VALID = valid_generator.n // valid_generator.batch_size
+    model.compile(optimizer='adam',
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
+
+    model.fit_generator(generator=train_generator,
+                        steps_per_epoch=STEP_SIZE_TRAIN,
+                        validation_data=valid_generator,
+                        validation_steps=STEP_SIZE_VALID,
+                        epochs=10
+                        )
+    model.evaluate(x=train_generator,
+                   steps=STEP_SIZE_VALID)
+
+    model.save('supernaturalSWDWCas_Model.h5')
+
+
+if __name__ == '__main__':
+    runModel()

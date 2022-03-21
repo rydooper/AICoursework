@@ -5,6 +5,8 @@
 import datetime
 import random
 import re
+import numpy as np
+from keras.models import load_model
 from nltk.inference import ResolutionProver
 from nltk.sem import Expression
 import aiml
@@ -13,7 +15,11 @@ import pyttsx3
 import speech_recognition as sr
 import fandom
 import pandas as pd
+from keras.preprocessing import image
+from numpy import array
+
 import knowledgeProcessing as kp
+import neuralNetwork as NN
 
 
 # classes
@@ -23,7 +29,7 @@ class chatbotAI:
         self.name = name
 
 
-# setup chat bot
+# setup chatbot
 
 spnChatbot = chatbotAI("Dave")
 engine = pyttsx3.init("sapi5")
@@ -150,7 +156,7 @@ def wikiCheck(query):
                 else:
                     continue
 
-    except Exception:
+    except:
         speak("I couldn't find a matching page on the Supernatural wiki! Try this link and searching it manually: ")
         print("https://supernatural.fandom.com/wiki/Supernatural_Wiki")
     return
@@ -159,31 +165,54 @@ def wikiCheck(query):
 def handleNeural(inputType, mic):
     """
     Handles all the Neural Network commands. In here, the user can rerun the CNN,
-    use the saved model to test an image or more.
+    use the saved model to test an image or view the current models accuracy.
 
     :param inputType:
     :param mic:
     :return: nothing
     """
-    print("Select what to do with neural network. "
+    speak("Select what to do with neural network. "
           "[1] Rerun CNN. "
-          "[2] Use h5 file (further options available). "
+          "[2] Use current neural network. "
           "[3] Exit. ")
     if inputType == "1":
         neuralChoice: str = input("> ")
     else:
         neuralChoice: str = takeCommand(mic).lower()
     if neuralChoice == "1":
-        print("Rerunning network.")
-        # run network here
+        speak("Rerunning network.")
+        NN.runModel()  # run network here
     if neuralChoice == "2":
-        print("The network can be used to:"
-              "[1] test what an image is. "
+        speak("The network can be used to: "
+              "[1] Test what an image is. "
               "[2] View current networks' accuracy. ")
+        model = load_model('supernaturalSWDWCas_Model.h5')
+        model.compile(optimizer='adam',
+                      loss='categorical_crossentropy',
+                      metrics=['accuracy'])
+
         if inputType == "1":
             neuralChoice2: str = input("> ")
         else:
             neuralChoice2: str = takeCommand(mic).lower()
+        if neuralChoice2 == "1":
+            speak("Input the file path to the image here: ")
+            imgFilePath: str = input("> ")
+            img_width, img_height = 500, 500
+            # predicting images
+            img = image.load_img(imgFilePath, target_size=(img_width, img_height))
+            x = image.img_to_array(img)
+            x = np.expand_dims(x, axis=0)
+
+            images = np.vstack([x])
+            predictNPList: list = list(model.predict(images, batch_size=None)[0])
+            maxVal = max(predictNPList)
+            identifiedClassPos = predictNPList.index(maxVal)
+            identifiedPerson = NN.classNames[identifiedClassPos]
+            speak("This image is identified as: ")
+            speak(identifiedPerson)
+            speak(" by a percentage of ")
+            speak(maxVal)
 
 
 # main
