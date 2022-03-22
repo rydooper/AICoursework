@@ -104,7 +104,7 @@
 
     <category> <pattern> USE NEURAL NETWORK </pattern>
         <template>
-            #4$ <star index="4"/>
+            #4
         </template>
     </category>
 

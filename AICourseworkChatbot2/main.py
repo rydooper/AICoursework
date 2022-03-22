@@ -5,21 +5,22 @@
 import datetime
 import random
 import re
+import aiml
+import pyjokes
+import pyttsx3
+import fandom
 import numpy as np
 from keras.models import load_model
 from nltk.inference import ResolutionProver
 from nltk.sem import Expression
-import aiml
-import pyjokes
-import pyttsx3
 import speech_recognition as sr
-import fandom
 import pandas as pd
 from keras.preprocessing import image
-from numpy import array
-
 import knowledgeProcessing as kp
 import neuralNetwork as NN
+import azureFaceRecognition as azureFN
+
+classNames = ['Cas', 'Dean', 'Sam']
 
 
 # classes
@@ -76,7 +77,7 @@ def greetUser():
     else:
         speak("Good evening!")
 
-    AIName = "Dave version 2 point 0"
+    AIName = "Dave version 3 point 2"
     speak("I am the assistant")
     speak(AIName)
 
@@ -162,18 +163,67 @@ def wikiCheck(query):
     return
 
 
-def handleNeural(inputType, mic):
+def runNN(query):
+    """
+    Predicts the identity (Cas, Sam, Dean) of the image input by the user.
+
+    :param query:
+    :return: nothing
+    """
+    model = load_model('supernaturalSWDWCas_Model.h5')
+    model.compile(optimizer='adam',
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
+    print(query)
+    if query == "use neural network":
+        speak("Input the file path to the image here: ")
+        imgFilePath: str = input("> ")
+    else:
+        imgFilePath: str = query
+    img_width, img_height = 300, 300
+
+    # predicting images - handles all the reshapes
+    img = image.load_img(imgFilePath, target_size=(img_width, img_height))
+    x = image.img_to_array(img)
+    x = np.expand_dims(x, axis=0)
+    images = np.vstack([x])
+    predictNPList: list = list(model.predict(images, batch_size=None)[0])  # predicts based on input image
+
+    maxVal = max(predictNPList)
+    identifiedClassPos = predictNPList.index(maxVal)
+    identifiedPerson = classNames[identifiedClassPos]
+    percentage = maxVal * 100  # get the percentage and name of the class identified
+
+    textToSpeak: str = "This image is identified as: " + identifiedPerson + " by a percentage of " + str(
+        percentage)
+    speak(textToSpeak)
+    return
+
+
+def runAzureNN(query):
+    """
+    Runs Azure's facial recognition software and outlines the detected face with a red box.
+
+    :param query:
+    :return: nothing
+    """
+    azureFN.outlineDetectedFace(query)
+    return
+
+
+def handleNeural(inputType, mic, query):
     """
     Handles all the Neural Network commands. In here, the user can rerun the CNN,
     use the saved model to test an image or view the current models accuracy.
 
+    :param query:
     :param inputType:
     :param mic:
     :return: nothing
     """
     speak("Select what to do with neural network. "
           "[1] Rerun CNN. "
-          "[2] Use current neural network. "
+          "[2] Use current CNN. "
           "[3] Exit. ")
     if inputType == "1":
         neuralChoice: str = input("> ")
@@ -183,36 +233,23 @@ def handleNeural(inputType, mic):
         speak("Rerunning network.")
         NN.runModel()  # run network here
     if neuralChoice == "2":
-        speak("The network can be used to: "
-              "[1] Test what an image is. "
-              "[2] View current networks' accuracy. ")
-        model = load_model('supernaturalSWDWCas_Model.h5')
-        model.compile(optimizer='adam',
-                      loss='categorical_crossentropy',
-                      metrics=['accuracy'])
-
+        speak("The network can be used to test what an image is: "
+              "[1] locally: "
+              "[2] on the cloud: ")
         if inputType == "1":
             neuralChoice2: str = input("> ")
         else:
             neuralChoice2: str = takeCommand(mic).lower()
         if neuralChoice2 == "1":
-            speak("Input the file path to the image here: ")
-            imgFilePath: str = input("> ")
-            img_width, img_height = 500, 500
-            # predicting images
-            img = image.load_img(imgFilePath, target_size=(img_width, img_height))
-            x = image.img_to_array(img)
-            x = np.expand_dims(x, axis=0)
+            # part C
+            runNN(query)
+        elif neuralChoice2 == "2":
+            # part D
+            runAzureNN(query)
+    elif neuralChoice != "3":
+        speak("Invalid input, retry.")
 
-            images = np.vstack([x])
-            predictNPList: list = list(model.predict(images, batch_size=None)[0])
-            maxVal = max(predictNPList)
-            identifiedClassPos = predictNPList.index(maxVal)
-            identifiedPerson = NN.classNames[identifiedClassPos]
-            speak("This image is identified as: ")
-            speak(identifiedPerson)
-            speak(" by a percentage of ")
-            speak(maxVal)
+    speak("Exiting neural networks options.")
 
 
 # main
@@ -270,7 +307,8 @@ def main():
                     wikiCheck(query)
 
                 elif command == 4:
-                    handleNeural(inputType, mic)
+                    # handling of neural network
+                    handleNeural(inputType, mic, query)
 
                 elif command == 31:
                     # LOGIC - "I know that * is *" statements

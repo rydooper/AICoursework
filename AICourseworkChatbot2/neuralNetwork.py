@@ -1,15 +1,18 @@
 # CNN
+import tensorflow as tf
 from tensorflow import keras
 from keras.preprocessing.image import ImageDataGenerator
-
-classNames = ['Cas', 'DW', 'SW']
+tf.compat.v1.disable_eager_execution()
 
 
 def runModel():
     output_classes = 3
+    classNames = ['Cas', 'Dean', 'Sam']
 
-    trainDir = r'C:/Users/ryder/OneDrive/Documents/GitHub-Laptop/supernatural-images-dataset/Supernatural_Train_Dataset/'
-    validDir = r'C:/Users/ryder/OneDrive/Documents/GitHub-Laptop/supernatural-images-dataset/Supernatural_Validation_Dataset/'
+    trainDir = r'C:/Users/ryder/OneDrive/Documents/GitHub-Laptop/' \
+               r'supernatural-images-dataset/Supernatural_Train_Dataset/'
+    validDir = r'C:/Users/ryder/OneDrive/Documents/GitHub-Laptop/' \
+               r'supernatural-images-dataset/Supernatural_Validation_Dataset/'
 
     train_datagen = ImageDataGenerator(
         rescale=1. / 255,
@@ -20,7 +23,7 @@ def runModel():
     test_datagen = ImageDataGenerator(rescale=1. / 255)
     train_generator = train_datagen.flow_from_directory(
         directory=trainDir,
-        target_size=(500, 500),
+        target_size=(300, 300),
         color_mode="rgb",
         classes=classNames,
         batch_size=10,
@@ -31,7 +34,7 @@ def runModel():
 
     valid_generator = test_datagen.flow_from_directory(
         directory=validDir,
-        target_size=(500, 500),
+        target_size=(300, 300),
         color_mode="rgb",
         classes=classNames,
         batch_size=10,
@@ -42,7 +45,7 @@ def runModel():
 
     model = keras.Sequential(
         [
-            keras.Input(shape=(500, 500, 3)),
+            keras.Input(shape=(300, 300, 3)),
             keras.layers.Conv2D(128, kernel_size=(3, 3), activation="relu"),
             keras.layers.MaxPooling2D(pool_size=(2, 2)),
             keras.layers.Conv2D(64, kernel_size=(3, 3), activation="relu"),
