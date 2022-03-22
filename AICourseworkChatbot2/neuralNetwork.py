@@ -1,4 +1,7 @@
 # CNN
+from os import environ
+environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+# this must be set before importing tf to avoid displaying warnings in console
 import tensorflow as tf
 from tensorflow import keras
 from keras.preprocessing.image import ImageDataGenerator

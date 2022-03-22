@@ -174,7 +174,6 @@ def runNN(query):
     model.compile(optimizer='adam',
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
-    print(query)
     if query == "use neural network":
         speak("Input the file path to the image here: ")
         imgFilePath: str = input("> ")
@@ -248,8 +247,7 @@ def handleNeural(inputType, mic, query):
             runAzureNN(query)
     elif neuralChoice != "3":
         speak("Invalid input, retry.")
-
-    speak("Exiting neural networks options.")
+    speak("Exiting neural network options.")
 
 
 # main
