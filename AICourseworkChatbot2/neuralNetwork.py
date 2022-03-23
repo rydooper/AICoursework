@@ -1,10 +1,12 @@
 # CNN
 from os import environ
+
 environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 # this must be set before importing tf to avoid displaying warnings in console
 import tensorflow as tf
 from tensorflow import keras
 from keras.preprocessing.image import ImageDataGenerator
+
 tf.compat.v1.disable_eager_execution()
 
 
@@ -17,14 +19,14 @@ def runModel():
     validDir = r'C:/Users/ryder/OneDrive/Documents/GitHub-Laptop/' \
                r'supernatural-images-dataset/Supernatural_Validation_Dataset/'
 
-    train_datagen = ImageDataGenerator(
+    trainDatagen = ImageDataGenerator(
         rescale=1. / 255,
         shear_range=0.2,
         zoom_range=0.2,
         horizontal_flip=True)
 
-    test_datagen = ImageDataGenerator(rescale=1. / 255)
-    train_generator = train_datagen.flow_from_directory(
+    testDatagen = ImageDataGenerator(rescale=1. / 255)
+    trainGenerator = trainDatagen.flow_from_directory(
         directory=trainDir,
         target_size=(300, 300),
         color_mode="rgb",
@@ -35,7 +37,7 @@ def runModel():
         seed=42
     )
 
-    valid_generator = test_datagen.flow_from_directory(
+    validGenerator = testDatagen.flow_from_directory(
         directory=validDir,
         target_size=(300, 300),
         color_mode="rgb",
@@ -60,20 +62,19 @@ def runModel():
         ]
     )
 
-    STEP_SIZE_TRAIN = train_generator.n // train_generator.batch_size
-    STEP_SIZE_VALID = valid_generator.n // valid_generator.batch_size
+    stepSizeTrain = trainGenerator.n // trainGenerator.batch_size
+    stepSizeValid = validGenerator.n // validGenerator.batch_size
     model.compile(optimizer='adam',
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
 
-    model.fit_generator(generator=train_generator,
-                        steps_per_epoch=STEP_SIZE_TRAIN,
-                        validation_data=valid_generator,
-                        validation_steps=STEP_SIZE_VALID,
-                        epochs=10
-                        )
-    model.evaluate(x=train_generator,
-                   steps=STEP_SIZE_VALID)
+    model.fit_generator(generator=trainGenerator,
+                        steps_per_epoch=stepSizeTrain,
+                        validation_data=validGenerator,
+                        validation_steps=stepSizeValid,
+                        epochs=10)
+    model.evaluate(x=trainGenerator,
+                   steps=stepSizeValid)
 
     model.save('supernaturalSWDWCas_Model.h5')
 

@@ -19,6 +19,7 @@ from keras.preprocessing import image
 import knowledgeProcessing as kp
 import neuralNetwork as NN
 import azureFaceRecognition as azureFN
+import azureImageClassification as azureIC
 
 classNames = ['Cas', 'Dean', 'Sam']
 
@@ -163,22 +164,18 @@ def wikiCheck(query):
     return
 
 
-def runNN(query):
+def runNN():
     """
-    Predicts the identity (Cas, Sam, Dean) of the image input by the user.
+    Predicts the identity (Cas, Sam, Dean, neither) of the image input by the user.
 
-    :param query:
     :return: nothing
     """
     model = load_model('supernaturalSWDWCas_Model.h5')
     model.compile(optimizer='adam',
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
-    if query == "use neural network":
-        speak("Input the file path to the image here: ")
-        imgFilePath: str = input("> ")
-    else:
-        imgFilePath: str = query
+    speak("Input the file path to the image here: ")
+    imgFilePath: str = input("> ")
     img_width, img_height = 300, 300
 
     # predicting images - handles all the reshapes
@@ -192,6 +189,8 @@ def runNN(query):
     identifiedClassPos = predictNPList.index(maxVal)
     identifiedPerson = classNames[identifiedClassPos]
     percentage = maxVal * 100  # get the percentage and name of the class identified
+    if percentage <= 75:
+        identifiedPerson = "Unknown"
 
     textToSpeak: str = "This image is identified as: " + identifiedPerson + " by a percentage of " + str(
         percentage)
@@ -199,23 +198,37 @@ def runNN(query):
     return
 
 
-def runAzureNN(query):
+def runAzureNN(inputType, mic):
     """
     Runs Azure's facial recognition software and outlines the detected face with a red box.
 
-    :param query:
+    :param mic:
+    :param inputType:
     :return: nothing
     """
-    azureFN.outlineDetectedFace(query)
+    speak("Do you want to [1] identify or [2] detect a face? ")
+    if inputType == "1":
+        neuralChoice: str = input("> ")
+    else:
+        neuralChoice: str = takeCommand(mic).lower()
+    if neuralChoice == "1":
+        speak("Input the file path of the image or folder of images: ")
+        folderDir: str = input("> ")
+        azureIC.runImageClassification(folderDir)
+    elif neuralChoice == "2":
+        speak("Input the file path of the image: ")
+        folderDir: str = input("> ")
+        azureFN.outlineDetectedFace(folderDir)
+    else:
+        speak("Command wasn't recognised. Exiting.")
     return
 
 
-def handleNeural(inputType, mic, query):
+def handleNeural(inputType, mic):
     """
     Handles all the Neural Network commands. In here, the user can rerun the CNN,
     use the saved model to test an image or view the current models accuracy.
 
-    :param query:
     :param inputType:
     :param mic:
     :return: nothing
@@ -241,10 +254,10 @@ def handleNeural(inputType, mic, query):
             neuralChoice2: str = takeCommand(mic).lower()
         if neuralChoice2 == "1":
             # part C
-            runNN(query)
+            runNN()
         elif neuralChoice2 == "2":
             # part D
-            runAzureNN(query)
+            runAzureNN(inputType, mic)
     elif neuralChoice != "3":
         speak("Invalid input, retry.")
     speak("Exiting neural network options.")
@@ -306,7 +319,7 @@ def main():
 
                 elif command == 4:
                     # handling of neural network
-                    handleNeural(inputType, mic, query)
+                    handleNeural(inputType, mic)
 
                 elif command == 31:
                     # LOGIC - "I know that * is *" statements
