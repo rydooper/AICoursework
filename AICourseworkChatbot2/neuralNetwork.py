@@ -76,7 +76,7 @@ def runModel():
     model.evaluate(x=trainGenerator,
                    steps=stepSizeValid)
 
-    model.save('supernaturalSWDWCas_Model.h5')
+    model.save('supernaturalCNNModel.h5')
 
 
 if __name__ == '__main__':

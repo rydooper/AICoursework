@@ -78,7 +78,7 @@ def greetUser():
     else:
         speak("Good evening!")
 
-    AIName = "Dave version 3 point 2"
+    AIName = "Dave version 4 point 0"
     speak("I am the assistant")
     speak(AIName)
 
@@ -170,7 +170,7 @@ def runNN():
 
     :return: nothing
     """
-    model = load_model('supernaturalSWDWCas_Model.h5')
+    model = load_model('supernaturalCNNModel.h5')
     model.compile(optimizer='adam',
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
@@ -216,6 +216,7 @@ def runAzureNN(inputType, mic):
         folderDir: str = input("> ")
         azureIC.runImageClassification(folderDir)
     elif neuralChoice == "2":
+        # extra for task D
         speak("Input the file path of the image: ")
         folderDir: str = input("> ")
         azureFN.outlineDetectedFace(folderDir)
@@ -227,7 +228,7 @@ def runAzureNN(inputType, mic):
 def handleNeural(inputType, mic):
     """
     Handles all the Neural Network commands. In here, the user can rerun the CNN,
-    use the saved model to test an image or view the current models accuracy.
+    use the locally saved model or azures' cloud model to test an image.
 
     :param inputType:
     :param mic:

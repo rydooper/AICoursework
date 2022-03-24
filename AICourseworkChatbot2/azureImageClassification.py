@@ -11,7 +11,7 @@ model_name = 'Iteration4'
 
 
 def runImageClassification(folderDir):
-    # Get the test images from the data/vision/test folder
+    # Get the test images from the folder supplied
     test_folder = folderDir
     test_images = os.listdir(test_folder)
 
