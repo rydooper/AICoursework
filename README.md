@@ -8,8 +8,6 @@ A) Rule-based and similarity-based conversation features. The chatbot can respon
 
 B) Logical reasoning features. A simple first order logic knowledgebase and inference engine using the Natural Language Toolkit library. The user may check that a fact is true, update the knowledge base with "I know that" phrases or even evaluate the knowledge base to ensure that no information is contradictory. BONUS FEATURE: fuzzy logic implementation that allows for episodes of the topic (Supernatural) to be rated and an average calculated.
 
-C) Local image classification model.
+C) Local image classification model. A user can supply the filepath to any locally downloaded image and have it classified as either: Sam Winchester, Cas or Dean Winchester. The chatbot is trained on images of these three characters from the Supernatural show with a h5 file, containing a Convolutional Neural Network (CNN) model. There is no bonus feature for this part.
 
-D) Cloud-based image classification service.
-
-Chatbot 2 is currently under development and, as such, the full details are yet to be released.
+D) Cloud-based image classification service. A user can choose to use the Azure-based classification AI model to identify an image (or set of images) as either: Sam Winchester, Dean Winchester, Castiel or "Negative" (none of them). Sadly, my subscription to Azure has since ended so this no longer works. BONUS FEATURE: Azures' face recognition features implemented.
